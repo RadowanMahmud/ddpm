@@ -92,6 +92,20 @@ def main():
                     [(r["group"], r["gen_nn_median"], r["test_nn_median"], pct(r["share_closer_than_any_test"]),
                       r["gen_pairwise"], r["train_pairwise"]) for r in rows]))
 
+    sweep = args.results / "sweep.csv"
+    if sweep.exists():
+        rows = sorted(read_csv(sweep), key=lambda r: (r["mode"], int(r["iteration"])))
+        sections.append(
+            "## Checkpoint sweep: quality vs copying over training (vs held-out test photos)\n\n" + table(
+                ("Model", "Iteration", "n", "FID ↓", "KID ↓", "Copy rate ↓", "Gen → train NN (median)",
+                 "Category entropy", "Controllability"),
+                [(r["mode"], f'{int(r["iteration"]) // 1000}k', r["generated_count"], r["fid_test"],
+                  f'{float(r["kid_test"]):.4f}', pct(r["copy_rate"]), r["gen_nn_median"],
+                  r["category_entropy"] or "–", pct(r["controllability"]) if r["controllability"] else "–")
+                 for r in rows])
+            + f'\n\nTest → train NN median (real baseline): {rows[0]["test_nn_median"]}.'
+            + ("\n\n![checkpoint sweep](sweep.png)" if sweep.with_suffix(".png").exists() else ""))
+
     losses = sorted(args.runs.glob("*.loss.csv"))
     if losses:
         try:
